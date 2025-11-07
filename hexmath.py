@@ -1,6 +1,7 @@
 import math
 import collections
 
+
 # Representation of a single hex cell in cube coordinates (q, r, s)
 _Hex = collections.namedtuple("Hex", ["q", "r", "s"])
 
