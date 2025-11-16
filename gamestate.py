@@ -1,16 +1,14 @@
-import pygame
-import hexmath as hm
-from board import Board
 from pieces import Piece
-import os
 
-pygame.init()
-screen = pygame.display.set_mode((800, 600))
-clock = pygame.time.Clock()
+class GameState:
+    def __init__(self):
+        self.turn = "white"
+        self.pieces = []
+        self.last_move = None
+        self.setup_initial_position()
 
-board = Board(radius=5, hex_size=30)
-
-pieces_setup = [
+    def setup_initial_position(self):
+        self.pieces = [
     (-5, 0, 5, "bishop", "black"),
     (-4, 0, 4, "bishop", "black"),
     (-3, 0, 3, "bishop", "black"),
@@ -48,27 +46,25 @@ pieces_setup = [
     (3, -2, -1, "pawn", "white"),
     (4, -3, -1, "pawn", "white"),
     (5, -4, -1, "pawn", "white"),
-
 ]
 
-pieces = []
+def get_piece(self, q, r):
+    return self.pieces.get((q, r))
 
-for q, r, s, ptype, color in pieces_setup:
-    pos = hm.Hex(q, r, s)
-    image_path = os.path.join("assets", f"{color}-{ptype}.png")
-    piece = Piece(pos, color, image_path)
-    pieces.append(piece)
-    board.add_piece(piece)
+def move_piece(self, from_hex, to_hex):
+    piece = self.pieces.get(from_hex)
+    if not piece:
+        return False
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    if to_hex in self.pieces:
+        del self.pieces[to_hex]
 
-    screen.fill((215, 200, 170))
-    board.draw(screen)
-    pygame.display.flip()
-    clock.tick(60)
+    self.pieces[to_hex] = piece
+    del self.pieces[from_hex]
+    piece.q, piece.r = to_hex
 
-pygame.quit()
+    self.turn = "black" if self.turn == "white" else "white"
+    return True
+
+def is_occupied(self, q, r):
+    return (q, r) in self.pieces

@@ -3,15 +3,19 @@ import math
 import hexmath
 
 class Board:
-    def __init__(self, radius=5, hex_size=30, colors=None, center_offset=(400, 300), rotation=90):
+    def __init__(self, radius=5, hex_size=30, colors=None, center_offset=(400, 300), rotation=90, game_state=None):
         self.radius = radius
         self.hex_size = hex_size
         self.colors = colors or [(209, 150, 88), (228,197,165), (171, 117, 60)]
         self.center_offset = center_offset
         self.rotation = rotation
+        self.game_state = game_state
+
         self.hex_coords = self.generate_hex_map()
         self.map_surface = pygame.Surface((800, 600), pygame.SRCALPHA)
         self.draw_map()
+
+        self.pieces = {}
 
     # Convert hex grid coordinates (q, r) to pixel coordinates
     def hex_to_pixel(self, q, r):
@@ -41,6 +45,16 @@ class Board:
                 coords.append((q, rr))
         return coords
 
+    def rotate_point(self, x, y, angle_degrees):
+        angle = math.radians(angle_degrees)
+        cx, cy = self.center_offset
+        dx = x - cx
+        dy = y - cy
+        rx = dx * math.cos(angle) - dy * math.sin(angle)
+        ry = dx * math.sin(angle) + dy * math.cos(angle)
+        return rx + cx, ry + cy
+
+
     def draw_map(self):
         self.map_surface.fill((0,0,0,0))
         for q, r in self.hex_coords:
@@ -52,3 +66,16 @@ class Board:
     def draw(self, screen):
         rect = self.map_surface.get_rect(center=self.center_offset)
         screen.blit(self.map_surface, rect.topleft)
+
+        for pos_key, piece in self.pieces.items():
+            q, r, s = pos_key
+            x, y = self.hex_to_pixel(q, r)
+
+            if self.rotation != 0:
+                x, y = self.rotate_point(x, y, self.rotation)
+
+            rect = piece.image.get_rect(center=(x, y))
+            screen.blit(piece.image, rect)
+
+    def add_piece(self, piece):
+        self.pieces[piece.pos_tuple()] = piece
