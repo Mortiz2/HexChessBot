@@ -26,8 +26,13 @@ def hex_subtract(a, b):
 
 # The six possible directions from any hex (clockwise)
 hex_directions = [
-    Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1),
-    Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1)
+    # connecting dirs (0-5)
+    Hex(-1, 0, 1), Hex(0, -1, 1), Hex(1, -1, 0),
+    Hex(1, 0, -1), Hex(0, 1, -1), Hex(-1, 1, 0),
+
+    # diagonal dirs (6-11)
+    Hex(-1, -1, 2), Hex(1, -2, 1), Hex(2, -1, -1),
+    Hex(1, 1, -2), Hex(-1, 2, -1), Hex(-2, 1, 1)
 ]
 
 def hex_direction(direction):
@@ -38,6 +43,10 @@ def hex_neighbor(hex, direction):
     """Return the neighboring hex in the given direction (0–5)."""
     return hex_add(hex, hex_direction(direction))
 
+hex_diagonals = [
+    Hex(-1, -1, 2), Hex(1, -2, 1), Hex(2, -1, -1),
+    Hex(1, 1, -2), Hex(-1, 2, -1), Hex(-2, 1, 1)
+]
 
 # --- Distance between two hexes ---
 

@@ -39,11 +39,11 @@ class Pawn(Piece):
         moves = []
 
         if self.color == "white":
-            forward_dir = 2
-            attack_dirs = [1, 3]
+            forward_dir = 0
+            attack_dirs = [1, 5]
         else:
-            forward_dir = 5
-            attack_dirs = [4, 0]
+            forward_dir = 3
+            attack_dirs = [2, 4]
 
         forward = hex_neighbor(self.pos, forward_dir)
         key_forward = (forward.q, forward.r, forward.s)
@@ -82,10 +82,24 @@ class Pawn(Piece):
                         moves.append(en_passant_hex)
 
         return moves
-#
-# class King(Piece):
-#     def __init__(self, pos: Hex, color: str, ):
-#         super().__init__(pos, color, "king")
-#         self.name = "King"
-#
-#
+
+class King(Piece):
+    def __init__(self, pos: Hex, color: str, ):
+        super().__init__(pos, color, "king")
+        self.name = "King"
+
+    def get_moves(self, board, last_move=None):
+        moves = []
+
+        for direction in range(12):
+            target = hex_neighbor(self.pos, direction)
+            key = (target.q, target.r, target.s)
+
+            if key not in board.pieces:
+                moves.append(target)
+                continue
+
+            if board.pieces[key].color != self.color:
+                moves.append(target)
+
+        return moves
