@@ -1,5 +1,6 @@
 import pygame
 import math
+import copy
 import hexmath
 
 class Board:
@@ -125,6 +126,20 @@ class Board:
 
     def add_piece(self, piece):
         self.pieces[piece.pos_tuple()] = piece
+
+    def __deepcopy__(self, memo):
+        new = Board.__new__(Board)
+        memo[id(self)] = new
+        new.radius        = self.radius
+        new.hex_size      = self.hex_size
+        new.colors        = self.colors
+        new.center_offset = self.center_offset
+        new.rotation      = self.rotation
+        new.game_state    = self.game_state
+        new.hex_coords    = self.hex_coords   # frozenset – safe to share
+        new.map_surface   = self.map_surface  # Surface – share, AI never renders
+        new.pieces        = copy.deepcopy(self.pieces, memo)
+        return new
 
     def move_piece(self, from_key, to_key):
         piece = self.pieces.pop(from_key)

@@ -1,5 +1,6 @@
 import hexmath as hm
 from hexmath import Hex, hex_neighbor, hex_distance
+import copy
 import pygame
 
 ROOK_DIRECTIONS = range(6)
@@ -39,6 +40,15 @@ class Piece:
 
     def pos_tuple(self):
         return (self.pos.q, self.pos.r, self.pos.s)
+
+    def __deepcopy__(self, memo):
+        new = self.__class__.__new__(self.__class__)
+        memo[id(self)] = new
+        new.pos   = self.pos    # namedtuple – immutable
+        new.color = self.color
+        new.name  = self.name
+        new.image = self.image  # Surface – share, AI never renders
+        return new
 
     def get_moves(self, board, last_move=None):
         return []
