@@ -55,6 +55,23 @@ def hex_distance(a, b):
     return (abs(a.q - b.q) + abs(a.r - b.r) + abs(a.s - b.s)) // 2
 
 
+def cube_round(q, r, s):
+    """Round fractional cube coordinates to the nearest hex."""
+    rq = round(q)
+    rr = round(r)
+    rs = round(s)
+    dq = abs(rq - q)
+    dr = abs(rr - r)
+    ds = abs(rs - s)
+    if dq > dr and dq > ds:
+        rq = -rr - rs
+    elif dr > ds:
+        rr = -rq - rs
+    else:
+        rs = -rq - rr
+    return Hex(rq, rr, rs)
+
+
 # --- Example usage ---
 
 if __name__ == "__main__":

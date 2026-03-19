@@ -2,6 +2,23 @@ import hexmath as hm
 from hexmath import Hex, hex_neighbor, hex_distance
 import pygame
 
+ROOK_DIRECTIONS = range(6)
+BISHOP_DIRECTIONS = range(6, 12)
+KNIGHT_OFFSETS = [
+    Hex(-2, -1, 3),
+    Hex(-1, -2, 3),
+    Hex(1, -3, 2),
+    Hex(2, -3, 1),
+    Hex(3, -2, -1),
+    Hex(3, -1, -2),
+    Hex(2, 1, -3),
+    Hex(1, 2, -3),
+    Hex(-1, 3, -2),
+    Hex(-2, 3, -1),
+    Hex(-3, 2, 1),
+    Hex(-3, 1, 2),
+]
+
 BLACK_PAWN_START_HEXES = {
     (-5, 4, 1), (-4, 3, 1), (-3, 2, 1), (-2, 1, 1), (-1, 0, 1),
     (-1, -1, 2), (-1, -2, 3), (-1, -3, 4), (-1, -4, 5)
@@ -17,14 +34,53 @@ class Piece:
         self.pos = pos
         self.color = color
         self.name = "Piece"
-
-        path = f"assets/{color}-{img_name}.png"
+        raw = pygame.image.load(f"assets/{color}-{img_name}.png")
+        self.image = pygame.transform.smoothscale(raw, (46, 46))
 
     def pos_tuple(self):
         return (self.pos.q, self.pos.r, self.pos.s)
 
-    def get_moves(self, board):
+    def get_moves(self, board, last_move=None):
         return []
+
+    def _is_on_board(self, board, target: Hex):
+        return not hasattr(board, "hex_coords") or (target.q, target.r) in board.hex_coords
+
+    def _get_sliding_moves(self, board, directions):
+        moves = []
+
+        for direction in directions:
+            target = hex_neighbor(self.pos, direction)
+
+            while self._is_on_board(board, target):
+                key = (target.q, target.r, target.s)
+
+                if key not in board.pieces:
+                    moves.append(target)
+                    target = hex_neighbor(target, direction)
+                    continue
+
+                if board.pieces[key].color != self.color:
+                    moves.append(target)
+
+                break
+
+        return moves
+
+    def _get_leaper_moves(self, board, offsets):
+        moves = []
+
+        for offset in offsets:
+            target = hm.hex_add(self.pos, offset)
+
+            if not self._is_on_board(board, target):
+                continue
+
+            key = (target.q, target.r, target.s)
+            if key not in board.pieces or board.pieces[key].color != self.color:
+                moves.append(target)
+
+        return moves
 
 class Pawn(Piece):
     def __init__(self, pos: Hex, color: str,):
@@ -61,22 +117,22 @@ class Pawn(Piece):
             target = hex_neighbor(self.pos, d)
             key = (target.q, target.r, target.s)
 
-            if key not in board.pieces:
+            if key in board.pieces:
                 if board.pieces[key].color != self.color:
                     moves.append(target)
 
-        if last_move and last_move.piece.name == "Pawn":
-            moved_pawn = last_move.piece
+        if last_move and last_move.piece.name == "Pawn" and last_move.piece.color != self.color:
             from_pos = last_move.from_pos
             to_pos = last_move.to_pos
 
-            if abs(from_pos.q - to_pos.q) + abs(from_pos.r - to_pos.r) + abs(from_pos.s - to_pos.s) == 2:
-                if hex_distance(self.pos, to_pos) == 1:
-                    en_passant_hex = Hex(
-                        to_pos.q,
-                        to_pos.r,
-                        to_pos.s - 1 if self.color == "white" else to_pos.s + 1
-                    )
+            if hex_distance(from_pos, to_pos) == 2:
+                # enemy pawn must have landed directly beside us in an attack direction
+                adjacent_in_attack = any(
+                    hex_neighbor(self.pos, d) == to_pos for d in attack_dirs
+                )
+                if adjacent_in_attack:
+                    # target is the hex the enemy pawn passed over (one step in our forward dir)
+                    en_passant_hex = hex_neighbor(to_pos, forward_dir)
                     key_en_passant = (en_passant_hex.q, en_passant_hex.r, en_passant_hex.s)
                     if key_en_passant not in board.pieces:
                         moves.append(en_passant_hex)
@@ -93,6 +149,10 @@ class King(Piece):
 
         for direction in range(12):
             target = hex_neighbor(self.pos, direction)
+
+            if not self._is_on_board(board, target):
+                continue
+
             key = (target.q, target.r, target.s)
 
             if key not in board.pieces:
@@ -103,3 +163,66 @@ class King(Piece):
                 moves.append(target)
 
         return moves
+
+
+class Rook(Piece):
+    def __init__(self, pos: Hex, color: str):
+        super().__init__(pos, color, "rook")
+        self.name = "Rook"
+
+    def get_moves(self, board, last_move=None):
+        return self._get_sliding_moves(board, ROOK_DIRECTIONS)
+
+
+class Bishop(Piece):
+    def __init__(self, pos: Hex, color: str):
+        super().__init__(pos, color, "bishop")
+        self.name = "Bishop"
+
+    def get_moves(self, board, last_move=None):
+        return self._get_sliding_moves(board, BISHOP_DIRECTIONS)
+
+
+class Knight(Piece):
+    def __init__(self, pos: Hex, color: str):
+        super().__init__(pos, color, "knight")
+        self.name = "Knight"
+
+    def get_moves(self, board, last_move=None):
+        return self._get_leaper_moves(board, KNIGHT_OFFSETS)
+
+
+class Queen(Piece):
+    def __init__(self, pos: Hex, color: str):
+        super().__init__(pos, color, "queen")
+        self.name = "Queen"
+
+    def get_moves(self, board, last_move=None):
+        return self._get_sliding_moves(board, range(12))
+
+
+class Move:
+    """Record of a completed move, used for en passant detection."""
+    def __init__(self, piece, from_pos, to_pos):
+        self.piece = piece
+        self.from_pos = from_pos
+        self.to_pos = to_pos
+
+
+def create_piece(pos: Hex, color: str, piece_type: str):
+    piece_classes = {
+        "bishop": Bishop,
+        "king": King,
+        "knight": Knight,
+        "pawn": Pawn,
+        "queen": Queen,
+        "rook": Rook,
+    }
+
+    piece_class = piece_classes.get(piece_type)
+    if piece_class:
+        return piece_class(pos, color)
+
+    piece = Piece(pos, color, piece_type)
+    piece.name = piece_type.capitalize()
+    return piece
